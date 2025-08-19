@@ -29,3 +29,9 @@ target_sdk_version = 31
 
 [package.metadata.android.application]
 label = "xilem example"
+
+[package.metadata.android.signing.release]
+keystore = { path = "debug.keystore" }
+storepass = "android"
+keyalias = "androiddebugkey"
+keypass = "android"
