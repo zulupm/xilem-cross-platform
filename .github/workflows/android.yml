@@ -25,7 +25,12 @@ jobs:
         with:
           api-level: 33
           ndk: 25.2.9519653
-          components: "platforms;android-31"
+
+      - name: Install Android platform 31
+        run: yes | sdkmanager "platforms;android-31"
+
+      - name: Set ANDROID_HOME
+        run: echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@4305c38b25d97ef35a8ad1f985ccf2d2242004f2 # stable
