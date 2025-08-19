@@ -31,7 +31,8 @@ target_sdk_version = 31
 label = "xilem example"
 
 [package.metadata.android.signing.release]
-keystore = { path = "debug.keystore" }
-storepass = "android"
-keyalias = "androiddebugkey"
-keypass = "android"
+# Use the generated debug keystore for release signing. cargo-apk expects
+# only the path and keystore password, and assumes the default debug key
+# alias and key password.
+path = "debug.keystore"
+keystore_password = "android"
