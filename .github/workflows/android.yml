@@ -1,0 +1,80 @@
+name: android-apk
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+
+      - name: Set up Java
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        with:
+          api-level: 33
+          ndk: 25.2.9519653
+
+      - name: Install Android platform 31
+        run: yes | sdkmanager "platforms;android-31"
+
+      - name: Set ANDROID_HOME
+        run: echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@4305c38b25d97ef35a8ad1f985ccf2d2242004f2 # stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi
+
+      - name: Install cargo-apk
+        run: cargo install cargo-apk
+
+      - name: Generate debug keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore mobile/debug.keystore \
+            -storepass android \
+            -keypass android \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+
+      - name: Build release APK
+        run: cargo apk build --release -p xilem_example_mobile
+
+      - name: Locate and rename APK
+        id: locate
+        run: |
+          apk=$(find target -name '*.apk' -print -quit)
+          name="xilem_example-${{ github.run_number }}.apk"
+          cp "$apk" "$name"
+          echo "apk=$name" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: xilem_example-${{ github.run_number }}.apk
+          path: ${{ steps.locate.outputs.apk }}
+          compression-level: 0
+
+      - name: Publish release
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
+        with:
+          tag_name: apk-${{ github.run_number }}
+          name: Android build ${{ github.run_number }}
+          draft: false
+          prerelease: true
+          files: ${{ steps.locate.outputs.apk }}
+
