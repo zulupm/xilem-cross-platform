@@ -25,6 +25,7 @@ jobs:
         with:
           api-level: 33
           ndk: 25.2.9519653
+          components: "platforms;android-31"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
