@@ -1,0 +1,57 @@
+name: android-apk
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 33
+          ndk: 25.2.9519653
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi
+
+      - name: Install cargo-apk
+        run: cargo install cargo-apk
+
+      - name: Build release APK
+        run: cargo apk build --release -p xilem_example_mobile
+
+      - name: Locate APK
+        id: locate
+        run: echo "apk=$(find target -name '*.apk' -print -quit)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: xilem_example.apk
+          path: ${{ steps.locate.outputs.apk }}
+          compression-level: 0
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: apk-${{ github.run_number }}
+          name: Android build ${{ github.run_number }}
+          draft: false
+          prerelease: true
+          files: ${{ steps.locate.outputs.apk }}
+
