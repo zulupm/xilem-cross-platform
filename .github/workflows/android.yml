@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
@@ -35,18 +37,23 @@ jobs:
       - name: Build release APK
         run: cargo apk build --release -p xilem_example_mobile
 
-      - name: Locate APK
+      - name: Locate and rename APK
         id: locate
-        run: echo "apk=$(find target -name '*.apk' -print -quit)" >> "$GITHUB_OUTPUT"
+        run: |
+          apk=$(find target -name '*.apk' -print -quit)
+          name="xilem_example-${{ github.run_number }}.apk"
+          cp "$apk" "$name"
+          echo "apk=$name" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: xilem_example.apk
+          name: xilem_example-${{ github.run_number }}.apk
           path: ${{ steps.locate.outputs.apk }}
           compression-level: 0
 
       - name: Publish release
+        if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: apk-${{ github.run_number }}
